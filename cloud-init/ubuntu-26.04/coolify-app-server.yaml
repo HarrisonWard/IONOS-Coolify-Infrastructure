@@ -1,0 +1,174 @@
+#cloud-config
+#
+# Ubuntu 26.04 - Coolify Application Server Baseline
+#
+# Credentials are intentionally NOT defined in this file.
+#
+# IONOS DCD:
+# - Configure the root/console password through IONOS.
+# - Configure the SSH public key through IONOS.
+# - Keep the corresponding private key in Coolify.
+
+hostname: ubuntu-app-server
+manage_etc_hosts: true
+timezone: America/Chicago
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - git
+  - jq
+  - unzip
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - fail2ban
+  - ufw
+  - htop
+  - nano
+  - vim
+  - net-tools
+  - bind9-dnsutils
+  - traceroute
+  - chrony
+  - unattended-upgrades
+
+disable_root: false
+ssh_pwauth: false
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-server-hardening.conf
+    permissions: '0644'
+    content: |
+      PermitRootLogin prohibit-password
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      PermitEmptyPasswords no
+      X11Forwarding no
+      AllowTcpForwarding yes
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+      MaxAuthTries 5
+
+  - path: /etc/fail2ban/jail.d/sshd.local
+    permissions: '0644'
+    content: |
+      [sshd]
+      enabled = true
+      port = ssh
+      backend = systemd
+      maxretry = 5
+      findtime = 10m
+      bantime = 1h
+
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    permissions: '0644'
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+  - path: /usr/local/bin/sky-server-info
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      PUBLIC_IP=$(curl -4 -s --max-time 5 https://api.ipify.org)
+      if [ -z "$PUBLIC_IP" ]; then
+          PUBLIC_IP=$(hostname -I | awk '{print $1}')
+      fi
+      echo
+      echo "============================================================"
+      echo " SERVER INFORMATION"
+      echo "============================================================"
+      echo
+      echo "Hostname:        $(hostname)"
+      echo "Public IP:       ${PUBLIC_IP}"
+      echo "SSH User:        root"
+      echo "SSH Port:        22"
+      echo "Architecture:    $(uname -m)"
+      echo "OS:              $(grep PRETTY_NAME /etc/os-release | cut -d= -f2- | tr -d '\"')"
+      echo "Kernel:          $(uname -r)"
+      echo "CPU:             $(nproc) vCPU"
+      echo "Memory:          $(free -h | awk '/^Mem:/ {print $2}')"
+      echo
+      echo "COOLIFY SETTINGS"
+      echo "------------------------------------------------------------"
+      echo "Name:            $(hostname)"
+      echo "IP/Domain:       ${PUBLIC_IP}"
+      echo "Port:            22"
+      echo "User:            root"
+      echo "Build Server:    NO"
+      echo
+      echo "Docker is intentionally not installed."
+      echo "Allow Coolify to install and manage Docker."
+      echo
+      echo "============================================================"
+
+  - path: /usr/local/bin/sky-health-check
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      echo
+      echo "============================================================"
+      echo " SERVER HEALTH CHECK"
+      echo "============================================================"
+      echo
+      echo "[Cloud-Init]"
+      cloud-init status --long || true
+      echo
+      echo "[SSH]"
+      systemctl is-active ssh || true
+      echo
+      echo "[Fail2Ban]"
+      systemctl is-active fail2ban || true
+      echo
+      echo "[Chrony]"
+      systemctl is-active chrony || true
+      echo
+      echo "[Firewall]"
+      ufw status verbose || true
+      echo
+      echo "[Disk]"
+      df -h /
+      echo
+      echo "[Memory]"
+      free -h
+      echo
+      echo "[Network]"
+      ip -br addr
+      echo
+      echo "============================================================"
+
+runcmd:
+  - mkdir -p /root/.ssh
+  - chmod 700 /root/.ssh
+  - test ! -f /root/.ssh/authorized_keys || chmod 600 /root/.ssh/authorized_keys
+  - systemctl enable --now chrony
+  - systemctl enable --now fail2ban
+  - sshd -t
+  - systemctl restart ssh
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+  - apt-get autoremove -y
+  - apt-get autoclean -y
+  - /usr/local/bin/sky-server-info > /root/SERVER-INFO.txt
+  - echo "Cloud-init completed successfully $(date)" > /root/cloud-init-complete.txt
+
+final_message: |
+  ============================================================
+  SERVER BUILD COMPLETE
+  ============================================================
+
+  Run:
+    cloud-init status --long
+    /usr/local/bin/sky-health-check
+    /usr/local/bin/sky-server-info
+
+  ============================================================
