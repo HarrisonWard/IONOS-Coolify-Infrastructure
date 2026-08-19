@@ -71,7 +71,7 @@ write_files:
       APT::Periodic::Update-Package-Lists "1";
       APT::Periodic::Unattended-Upgrade "1";
 
-  - path: /usr/local/bin/sky-server-info
+  - path: /usr/local/bin/server-info
     permissions: '0755'
     content: |
       #!/bin/bash
@@ -107,7 +107,7 @@ write_files:
       echo
       echo "============================================================"
 
-  - path: /usr/local/bin/sky-health-check
+  - path: /usr/local/bin/health-check
     permissions: '0755'
     content: |
       #!/bin/bash
