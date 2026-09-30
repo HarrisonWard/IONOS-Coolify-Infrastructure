@@ -158,7 +158,7 @@ runcmd:
   - ufw --force enable
   - apt-get autoremove -y
   - apt-get autoclean -y
-  - /usr/local/bin/sky-server-info > /root/SERVER-INFO.txt
+  - /usr/local/bin/server-info > /root/SERVER-INFO.txt
   - echo "Cloud-init completed successfully $(date)" > /root/cloud-init-complete.txt
 
 final_message: |
@@ -168,7 +168,7 @@ final_message: |
 
   Run:
     cloud-init status --long
-    /usr/local/bin/sky-health-check
-    /usr/local/bin/sky-server-info
+    /usr/local/bin/health-check
+    /usr/local/bin/server-info
 
   ============================================================
