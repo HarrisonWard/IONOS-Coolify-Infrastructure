@@ -45,8 +45,8 @@ Do not document the actual password, private SSH key, or production IP address i
 
 ```bash
 cloud-init status --long
-/usr/local/bin/sky-health-check
-/usr/local/bin/sky-server-info
+/usr/local/bin/health-check
+/usr/local/bin/server-info
 ```
 
 Expected cloud-init status:

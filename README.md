@@ -77,10 +77,8 @@ No passwords, keys, or secrets live in this repo or in the cloud-init file. Thos
 - `/usr/local/bin/server-info`: prints the hostname, public IP (falls back to the local IP if the lookup fails), architecture, OS, kernel, CPU count, and memory
 - `server-info` also prints a ready to copy block of Coolify settings (name, IP, port 22, user root, build server off)
 - Leaves a timestamped `/root/cloud-init-complete.txt` so you can tell the build finished
-- Tries to save the server info to `/root/SERVER-INFO.txt` (see the heads up below)
+- Saves the server info to `/root/SERVER-INFO.txt`
 - Shows a "Server Build Complete" message at the end of the build with the commands to run next
-
-Heads up: the last build steps and the finish message in the yaml still call the helpers by older names (`sky-server-info` and `sky-health-check`), while the files are installed as `server-info` and `health-check`. Until the yaml is updated, `/root/SERVER-INFO.txt` may come out empty. Just run `/usr/local/bin/server-info` yourself.
 
 ### No Secrets In Source
 
